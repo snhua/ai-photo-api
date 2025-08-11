@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiphone.mapper.ArtistMapper">
+
+    <!-- 结果映射 -->
+    <resultMap id="ArtistResultMap" type="com.aiphone.entity.Artist">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="artist_name" property="artistName"/>
+        <result column="description" property="description"/>
+        <result column="specialties" property="specialties"/>
+        <result column="price_per_hour" property="pricePerHour"/>
+        <result column="rating" property="rating"/>
+        <result column="total_orders" property="totalOrders"/>
+        <result column="status" property="status"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+        <!-- 关联用户信息 -->
+        <association property="user" javaType="com.aiphone.entity.User">
+            <id column="user_id" property="id"/>
+            <result column="user_nickname" property="nickname"/>
+            <result column="user_avatar" property="avatar"/>
+            <result column="user_phone" property="phone"/>
+            <result column="user_balance" property="balance"/>
+            <result column="user_type" property="userType"/>
+            <result column="user_status" property="status"/>
+            <result column="user_created_at" property="createdAt"/>
+            <result column="user_updated_at" property="updatedAt"/>
+        </association>
+    </resultMap>
+
+    <!-- 获取推荐AI绘画师列表 -->
+    <select id="selectRecommendedArtists" resultMap="ArtistResultMap">
+        SELECT 
+            a.*,
+            u.nickname as user_nickname,
+            u.avatar as user_avatar,
+            u.phone as user_phone,
+            u.balance as user_balance,
+            u.user_type,
+            u.status as user_status,
+            u.created_at as user_created_at,
+            u.updated_at as user_updated_at
+        FROM artists a
+        LEFT JOIN users u ON a.user_id = u.id
+        WHERE a.status = 1
+        <if test="category != null and category != ''">
+            AND a.specialties LIKE CONCAT('%', #{category}, '%')
+        </if>
+        <choose>
+            <when test="sort == 'rating'">
+                ORDER BY a.rating DESC
+            </when>
+            <when test="sort == 'orders'">
+                ORDER BY a.total_orders DESC
+            </when>
+            <when test="sort == 'price'">
+                ORDER BY a.price_per_hour DESC
+            </when>
+            <otherwise>
+                ORDER BY a.rating DESC, a.total_orders DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <!-- 获取AI绘画师列表 -->
+    <select id="selectArtistList" resultMap="ArtistResultMap">
+        SELECT 
+            a.*,
+            u.nickname as user_nickname,
+            u.avatar as user_avatar,
+            u.phone as user_phone,
+            u.balance as user_balance,
+            u.user_type,
+            u.status as user_status,
+            u.created_at as user_created_at,
+            u.updated_at as user_updated_at
+        FROM artists a
+        LEFT JOIN users u ON a.user_id = u.id
+        WHERE a.status = 1
+        <if test="category != null and category != ''">
+            AND a.specialties LIKE CONCAT('%', #{category}, '%')
+        </if>
+        <if test="keyword != null and keyword != ''">
+            AND (
+                a.artist_name LIKE CONCAT('%', #{keyword}, '%')
+                OR a.description LIKE CONCAT('%', #{keyword}, '%')
+                OR a.specialties LIKE CONCAT('%', #{keyword}, '%')
+                OR u.nickname LIKE CONCAT('%', #{keyword}, '%')
+            )
+        </if>
+        <choose>
+            <when test="sort == 'rating'">
+                ORDER BY a.rating DESC
+            </when>
+            <when test="sort == 'orders'">
+                ORDER BY a.total_orders DESC
+            </when>
+            <when test="sort == 'price'">
+                ORDER BY a.price_per_hour DESC
+            </when>
+            <otherwise>
+                ORDER BY a.rating DESC, a.total_orders DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <!-- 根据ID获取AI绘画师详情 -->
+    <select id="selectArtistDetailById" resultMap="ArtistResultMap">
+        SELECT 
+            a.*,
+            u.nickname as user_nickname,
+            u.avatar as user_avatar,
+            u.phone as user_phone,
+            u.balance as user_balance,
+            u.user_type,
+            u.status as user_status,
+            u.created_at as user_created_at,
+            u.updated_at as user_updated_at
+        FROM artists a
+        LEFT JOIN users u ON a.user_id = u.id
+        WHERE a.id = #{id} AND a.status = 1
+    </select>
+
+    <!-- 根据用户ID获取AI绘画师信息 -->
+    <select id="selectByUserId" resultMap="ArtistResultMap">
+        SELECT 
+            a.*,
+            u.nickname as user_nickname,
+            u.avatar as user_avatar,
+            u.phone as user_phone,
+            u.balance as user_balance,
+            u.user_type,
+            u.status as user_status,
+            u.created_at as user_created_at,
+            u.updated_at as user_updated_at
+        FROM artists a
+        LEFT JOIN users u ON a.user_id = u.id
+        WHERE a.user_id = #{userId} AND a.status = 1
+    </select>
+
+    <!-- 更新绘画师评分 -->
+    <update id="updateRating">
+        UPDATE artists 
+        SET rating = #{rating}
+        WHERE id = #{id}
+    </update>
+
+    <!-- 更新绘画师订单数 -->
+    <update id="updateTotalOrders">
+        UPDATE artists 
+        SET total_orders = #{totalOrders}
+        WHERE id = #{id}
+    </update>
+
+</mapper> 

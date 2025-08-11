@@ -1,0 +1,40 @@
+# IntelliJ IDEA 特定文件
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+build/
+classes/
+
+# 其他常见忽略项
+# 操作系统文件
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# 依赖目录
+node_modules/
+vendor/
+target/
+.gradle/
+.mvn/
+.gitOld
+
+# 环境配置
+.env
+.env.local
+.env.*.local
+
+# 日志和临时文件
+logs/
+*.log
+tmp/
+temp/
+
+# 测试相关
+.coverage
+.pytest_cache/
+__pycache__/
+src/main/resources/application.yml
