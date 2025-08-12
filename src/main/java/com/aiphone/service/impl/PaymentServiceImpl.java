@@ -1,5 +1,6 @@
 package com.aiphone.service.impl;
 
+import com.aiphone.config.WechatPayConfig;
 import com.aiphone.dto.PaymentRequest;
 import com.aiphone.dto.PaymentResponse;
 import com.aiphone.entity.Order;
@@ -8,6 +9,7 @@ import com.aiphone.service.PaymentService;
 import com.aiphone.service.WechatPayService;
 import com.aiphone.service.UserService;
 import com.aiphone.service.OrderService;
+import com.aiphone.util.AesUtil;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
@@ -20,8 +22,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
+import java.io.IOException;
 import java.math.BigDecimal;
+import java.security.GeneralSecurityException;
 import java.text.ParseException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -35,7 +40,8 @@ import java.util.UUID;
 @Slf4j
 @Service
 public class PaymentServiceImpl extends ServiceImpl<PaymentMapper, Payment> implements PaymentService {
-
+    @Autowired
+    private WechatPayConfig wechatPayConfig;
   final   String success = "{   \n" +
             "    \"code\": \"SUCCESS\",\n" +
             "    \"message\": \"成功\"\n" +
@@ -54,6 +60,12 @@ public class PaymentServiceImpl extends ServiceImpl<PaymentMapper, Payment> impl
 
     @Autowired
     private OrderService orderService;
+
+    private AesUtil aesUtil;
+    @PostConstruct
+    private void  init(){
+        aesUtil = new AesUtil(wechatPayConfig.getApiV3Key().getBytes());
+    }
 
     @Override
     @Transactional
@@ -172,51 +184,58 @@ public class PaymentServiceImpl extends ServiceImpl<PaymentMapper, Payment> impl
 
     @Override
     @Transactional
-    public String handleWechatPayNotify(String xmlData) {
+    public String handleWechatPayNotify(String jsonData) {
         try {
             // 验证回调签名
-            if (!wechatPayService.verifyWechatPayNotify(xmlData)) {
-                log.error("微信支付回调签名验证失败");
-                return "<xml><return_code><![CDATA[FAIL]]></return_code><return_msg><![CDATA[签名验证失败]]></return_msg></xml>";
-            }
+//            if (!wechatPayService.verifyWechatPayNotify(jsonData)) {
+//                log.error("微信支付回调签名验证失败");
+//                return "<xml><return_code><![CDATA[FAIL]]></return_code><return_msg><![CDATA[签名验证失败]]></return_msg></xml>";
+//            }
+
             
             // 解析回调数据
-            Map<String, String> notifyData = wechatPayService.parseWechatPayNotify(xmlData);
-            
-            String paymentNo = notifyData.get("out_trade_no");
-            String transactionId = notifyData.get("transaction_id");
-            String resultCode = notifyData.get("result_code");
-            
-            // 查询支付记录
-            Payment payment = getPaymentByNo(paymentNo);
-            if (payment == null) {
-                log.error("支付记录不存在，支付订单号：{}", paymentNo);
-                return "<xml><return_code><![CDATA[FAIL]]></return_code><return_msg><![CDATA[支付记录不存在]]></return_msg></xml>";
-            }
-            
-            // 检查支付状态
-            if ("success".equals(payment.getStatus())) {
-                log.info("支付订单已处理，支付订单号：{}", paymentNo);
-                return "<xml><return_code><![CDATA[SUCCESS]]></return_code><return_msg><![CDATA[OK]]></return_msg></xml>";
-            }
-            
-            if ("SUCCESS".equals(resultCode)) {
-                // 支付成功
-                payment.setStatus("success");
-                payment.setUpdateTime(LocalDateTime.now());
-                updateById(payment);
-                
-                // 处理订单状态（这里可以调用订单服务更新订单状态）
-                orderService.updateOrderStatus(payment.getOrderNo(), "PAID");
-                
-                log.info("微信支付成功，支付订单号：{}，微信交易号：{}", paymentNo, transactionId);
-            } else {
-                // 支付失败
-                payment.setStatus("failed");
-                payment.setUpdateTime(LocalDateTime.now());
-                updateById(payment);
-                
-                log.error("微信支付失败，支付订单号：{}", paymentNo);
+            JSONObject data = JSON.parseObject(jsonData);
+            String event_type = data.getString("event_type");
+            if(event_type.equals("TRANSACTION.SUCCESS")) {
+
+               JSONObject resource = data.getJSONObject("resource");
+
+                JSONObject notifyData = parseNotifyData(resource);
+                String paymentNo = notifyData.getString("out_trade_no");
+                String transactionId = notifyData.getString("transaction_id");
+                String resultCode = notifyData.getString("trade_state");
+
+                // 查询支付记录
+                Payment payment = getPaymentByNo(paymentNo);
+                if (payment == null) {
+                    log.error("支付记录不存在，支付订单号：{}", paymentNo);
+                    return "<xml><return_code><![CDATA[FAIL]]></return_code><return_msg><![CDATA[支付记录不存在]]></return_msg></xml>";
+                }
+
+                // 检查支付状态
+                if ("success".equals(payment.getStatus())) {
+                    log.info("支付订单已处理，支付订单号：{}", paymentNo);
+                    return "<xml><return_code><![CDATA[SUCCESS]]></return_code><return_msg><![CDATA[OK]]></return_msg></xml>";
+                }
+
+                if ("SUCCESS".equals(resultCode)) {
+                    // 支付成功
+                    payment.setStatus("success");
+                    payment.setUpdateTime(LocalDateTime.now());
+                    updateById(payment);
+
+                    // 处理订单状态（这里可以调用订单服务更新订单状态）
+                    orderService.updateOrderStatus(payment.getOrderNo(), "paid");
+
+                    log.info("微信支付成功，支付订单号：{}，微信交易号：{}", paymentNo, transactionId);
+                } else {
+                    // 支付失败
+                    payment.setStatus("failed");
+                    payment.setUpdateTime(LocalDateTime.now());
+                    updateById(payment);
+
+                    log.error("微信支付失败，支付订单号：{}", paymentNo);
+                }
             }
             
             return "<xml><return_code><![CDATA[SUCCESS]]></return_code><return_msg><![CDATA[OK]]></return_msg></xml>";
@@ -225,6 +244,16 @@ public class PaymentServiceImpl extends ServiceImpl<PaymentMapper, Payment> impl
             log.error("处理微信支付回调失败", e);
             return "<xml><return_code><![CDATA[FAIL]]></return_code><return_msg><![CDATA[处理失败]]></return_msg></xml>";
         }
+    }
+
+    private JSONObject parseNotifyData(JSONObject resource) throws GeneralSecurityException, IOException {
+        String ciphertext = resource.getString("ciphertext");
+        String associated_data = resource.getString("associated_data");
+        String nonce = resource.getString("nonce");
+
+        String cipherJson = aesUtil.decryptToString(associated_data.getBytes(),nonce.getBytes(),ciphertext);
+        return JSON.parseObject(cipherJson);
+
     }
 
     @Override

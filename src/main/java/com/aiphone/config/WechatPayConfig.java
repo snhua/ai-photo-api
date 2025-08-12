@@ -11,6 +11,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @ConfigurationProperties(prefix = "wechat.pay")
 public class WechatPayConfig {
+    private String apiV3Key;
 
     /**
      * 应用ID

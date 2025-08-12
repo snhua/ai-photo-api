@@ -42,6 +42,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .and()
                 .authorizeRequests()
                 .antMatchers("/user/login").permitAll() // 允许登录接口
+                .antMatchers("/payment/wechat/notify").permitAll() // 允许登录接口
                 .antMatchers("/druid/**").permitAll()
                 .antMatchers("/swagger-ui/**", "/swagger-resources/**", "/v3/api-docs/**").permitAll()
                 .antMatchers("/actuator/**").permitAll()

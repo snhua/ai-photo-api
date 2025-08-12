@@ -1,0 +1,1 @@
+nohup java -jar target/aiphone-api.jar --version &
