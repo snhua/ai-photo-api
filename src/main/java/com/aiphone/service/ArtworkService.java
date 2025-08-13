@@ -4,6 +4,7 @@ import com.aiphone.dto.ArtworkDTO;
 import com.aiphone.entity.Artwork;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -50,6 +51,17 @@ public interface ArtworkService extends IService<Artwork> {
     List<ArtworkDTO> getArtworksByArtistId(Long artistId);
 
     /**
+     * 根据绘画师ID获取作品列表（分页）
+     *
+     * @param artistId 绘画师ID
+     * @param page 页码
+     * @param pageSize 每页数量
+     * @param category 分类筛选
+     * @return 作品列表
+     */
+    IPage<ArtworkDTO> getWorksByArtistId(Long artistId, Integer page, Integer pageSize, String category);
+
+    /**
      * 根据分类获取作品列表
      *
      * @param category 作品分类
@@ -89,4 +101,31 @@ public interface ArtworkService extends IService<Artwork> {
      * @return 删除结果
      */
     boolean deleteArtwork(Long id);
+
+    /**
+     * 上传作品到作品集（画师工作台）
+     *
+     * @param file 作品文件
+     * @param artworkDTO 作品信息
+     * @return 作品ID
+     */
+    Long uploadWork(MultipartFile file, ArtworkDTO artworkDTO);
+
+    /**
+     * 上传作品草稿（画师工作台）
+     *
+     * @param orderId 订单ID
+     * @param file 草稿文件
+     * @param description 草稿说明
+     * @return 文件URL
+     */
+    String uploadDraft(Long orderId, MultipartFile file, String description);
+
+    /**
+     * 获取画师作品数量
+     *
+     * @param artistId 绘画师ID
+     * @return 作品数量
+     */
+    long getWorksCountByArtistId(Long artistId);
 } 

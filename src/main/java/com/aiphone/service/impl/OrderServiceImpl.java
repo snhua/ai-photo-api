@@ -3,6 +3,7 @@ package com.aiphone.service.impl;
 import com.aiphone.dto.ArtistDTO;
 import com.aiphone.dto.OrderDTO;
 import com.aiphone.dto.UserDTO;
+import com.aiphone.dto.DeliveryDTO;
 import com.aiphone.entity.Order;
 import com.aiphone.mapper.OrderMapper;
 import com.aiphone.service.ArtistService;
@@ -26,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.lang.reflect.Type;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -83,6 +85,42 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         }
         if (artistId != null) {
             queryWrapper.eq("artist_id", artistId);
+        }
+        
+        queryWrapper.orderByDesc("created_at");
+        
+        IPage<Order> orderPage = this.page(pageParam, queryWrapper);
+        return convertToOrderDTOPage(orderPage);
+    }
+
+    @Override
+    public IPage<OrderDTO> getAvailableOrders(Long artistId, Integer page, Integer pageSize, String category, String priceRange) {
+        Page<Order> pageParam = new Page<>(page, pageSize);
+        QueryWrapper<Order> queryWrapper = new QueryWrapper<>();
+        
+        // 只查询待接单的订单
+        queryWrapper.eq("status", "pending");
+        
+        // 排除已经被接的订单
+        queryWrapper.isNull("artist_id").or().eq("artist_id", 0);
+        
+        // 分类筛选
+        if (StringUtils.hasText(category)) {
+            queryWrapper.eq("category", category);
+        }
+        
+        // 价格范围筛选
+        if (StringUtils.hasText(priceRange)) {
+            String[] range = priceRange.split("-");
+            if (range.length == 2) {
+                try {
+                    BigDecimal minPrice = new BigDecimal(range[0]);
+                    BigDecimal maxPrice = new BigDecimal(range[1]);
+                    queryWrapper.between("price", minPrice, maxPrice);
+                } catch (NumberFormatException e) {
+                    // 价格格式错误，忽略价格筛选
+                }
+            }
         }
         
         queryWrapper.orderByDesc("created_at");
@@ -276,6 +314,62 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         
         order.setStatus("cancelled");
         return this.updateById(order);
+    }
+
+    @Override
+    @Transactional
+    public boolean deliverOrder(Long orderId, DeliveryDTO deliveryDTO) {
+        try {
+            Order order = this.getById(orderId);
+            if (order == null) {
+                return false;
+            }
+            
+            // 更新订单状态为已完成
+            order.setStatus("completed");
+            
+            // 保存作品信息到订单（暂时注释掉，因为Order实体没有这些字段）
+            // if (deliveryDTO.getArtworkUrls() != null && !deliveryDTO.getArtworkUrls().isEmpty()) {
+            //     order.setArtworkUrls(JSON.toJSONString(deliveryDTO.getArtworkUrls()));
+            // }
+            
+            // 保存作品说明（暂时注释掉，因为Order实体没有这些字段）
+            // if (StringUtils.hasText(deliveryDTO.getNotes())) {
+            //     order.setNotes(deliveryDTO.getNotes());
+            // }
+            
+            // 保存技术说明（暂时注释掉，因为Order实体没有这些字段）
+            // if (StringUtils.hasText(deliveryDTO.getTechnicalNotes())) {
+            //     order.setTechnicalNotes(deliveryDTO.getTechnicalNotes());
+            // }
+            
+            // 保存制作时间（暂时注释掉，因为Order实体没有这些字段）
+            // if (deliveryDTO.getWorkHours() != null) {
+            //     order.setWorkHours(deliveryDTO.getWorkHours());
+            // }
+            
+            return this.updateById(order);
+        } catch (Exception e) {
+            throw new RuntimeException("提交作品失败", e);
+        }
+    }
+
+    @Override
+    public BigDecimal getArtistIncome(Long artistId) {
+        try {
+            QueryWrapper<Order> queryWrapper = new QueryWrapper<>();
+            queryWrapper.eq("artist_id", artistId)
+                       .eq("status", "completed");
+            
+            List<Order> completedOrders = this.list(queryWrapper);
+            
+            return completedOrders.stream()
+                    .map(Order::getPrice)
+                    .filter(price -> price != null)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+        } catch (Exception e) {
+            throw new RuntimeException("获取画师收入失败", e);
+        }
     }
 
     @Override

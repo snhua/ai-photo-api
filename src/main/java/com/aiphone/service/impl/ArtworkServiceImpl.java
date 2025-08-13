@@ -4,16 +4,21 @@ import com.aiphone.dto.ArtworkDTO;
 import com.aiphone.entity.Artwork;
 import com.aiphone.mapper.ArtworkMapper;
 import com.aiphone.service.ArtworkService;
+import com.aiphone.service.CosService;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -21,6 +26,9 @@ import java.util.stream.Collectors;
  */
 @Service
 public class ArtworkServiceImpl extends ServiceImpl<ArtworkMapper, Artwork> implements ArtworkService {
+
+    @Autowired
+    private CosService cosService;
 
     @Override
     public List<ArtworkDTO> getHotArtworks(Integer limit, String category) {
@@ -100,45 +108,134 @@ public class ArtworkServiceImpl extends ServiceImpl<ArtworkMapper, Artwork> impl
     }
 
     @Override
+    public IPage<ArtworkDTO> getWorksByArtistId(Long artistId, Integer page, Integer pageSize, String category) {
+        Page<Artwork> pageParam = new Page<>(page, pageSize);
+        QueryWrapper<Artwork> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("artist_id", artistId);
+        queryWrapper.eq("status", 1); // 只查询正常状态的作品
+        
+        if (StringUtils.hasText(category)) {
+            queryWrapper.eq("category", category);
+        }
+        
+        queryWrapper.orderByDesc("created_at");
+        
+        IPage<Artwork> artworkPage = this.page(pageParam, queryWrapper);
+        
+        // 转换为DTO
+        IPage<ArtworkDTO> dtoPage = new Page<>();
+        BeanUtils.copyProperties(artworkPage, dtoPage);
+        dtoPage.setRecords(artworkPage.getRecords().stream()
+            .map(this::convertToDTO)
+            .collect(Collectors.toList()));
+        
+        return dtoPage;
+    }
+
+    @Override
     public List<ArtworkDTO> getArtworksByCategory(String category) {
-        List<Artwork> artworks = baseMapper.getByCategory(category);
+        QueryWrapper<Artwork> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("category", category);
+        queryWrapper.eq("status", 1);
+        queryWrapper.orderByDesc("created_at");
+        
+        List<Artwork> artworks = this.list(queryWrapper);
         return artworks.stream().map(this::convertToDTO).collect(Collectors.toList());
     }
 
     @Override
     public List<ArtworkDTO> searchArtworks(String keyword) {
-        List<Artwork> artworks = baseMapper.searchByTag(keyword);
+        QueryWrapper<Artwork> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("status", 1);
+        queryWrapper.and(wrapper -> wrapper
+            .like("title", keyword)
+            .or()
+            .like("description", keyword)
+            .or()
+            .like("tags", keyword)
+        );
+        queryWrapper.orderByDesc("created_at");
+        
+        List<Artwork> artworks = this.list(queryWrapper);
         return artworks.stream().map(this::convertToDTO).collect(Collectors.toList());
     }
 
     @Override
     public boolean createArtwork(ArtworkDTO artworkDTO) {
         Artwork artwork = convertToEntity(artworkDTO);
-        artwork.setStatus(1); // 设置为正常状态
+        artwork.setCreatedAt(LocalDateTime.now());
+        artwork.setStatus(1); // 正常状态
+        
         return this.save(artwork);
     }
 
     @Override
     public boolean updateArtwork(Long id, ArtworkDTO artworkDTO) {
-        Artwork existingArtwork = this.getById(id);
-        if (existingArtwork == null) {
+        Artwork artwork = this.getById(id);
+        if (artwork == null) {
             return false;
         }
         
-        Artwork artwork = convertToEntity(artworkDTO);
-        artwork.setId(id);
-        artwork.setStatus(existingArtwork.getStatus()); // 保持原有状态
+        BeanUtils.copyProperties(artworkDTO, artwork);
         
         return this.updateById(artwork);
     }
 
     @Override
     public boolean deleteArtwork(Long id) {
-        // 软删除，将状态设置为0
-        Artwork artwork = new Artwork();
-        artwork.setId(id);
+        Artwork artwork = this.getById(id);
+        if (artwork == null) {
+            return false;
+        }
+        
+        // 软删除，设置状态为0
         artwork.setStatus(0);
+        
         return this.updateById(artwork);
+    }
+
+    @Override
+    public Long uploadWork(MultipartFile file, ArtworkDTO artworkDTO) {
+        try {
+            // 上传文件到COS
+            String fileName = "artworks/" + UUID.randomUUID().toString() + "_" + file.getOriginalFilename();
+            String fileUrl = cosService.uploadFileToCos(file, fileName);
+            
+            // 创建作品记录
+            Artwork artwork = convertToEntity(artworkDTO);
+            artwork.setImageUrl(fileUrl);
+            artwork.setCreatedAt(LocalDateTime.now());
+            artwork.setStatus(1); // 正常状态
+            
+            this.save(artwork);
+            return artwork.getId();
+        } catch (Exception e) {
+            throw new RuntimeException("上传作品失败", e);
+        }
+    }
+
+    @Override
+    public String uploadDraft(Long orderId, MultipartFile file, String description) {
+        try {
+            // 上传草稿文件到COS
+            String fileName = "drafts/order_" + orderId + "/" + UUID.randomUUID().toString() + "_" + file.getOriginalFilename();
+            String fileUrl = cosService.uploadFileToCos(file, fileName);
+            
+            // 这里可以保存草稿记录到数据库，或者直接返回文件URL
+            // 暂时直接返回文件URL
+            return fileUrl;
+        } catch (Exception e) {
+            throw new RuntimeException("上传草稿失败", e);
+        }
+    }
+
+    @Override
+    public long getWorksCountByArtistId(Long artistId) {
+        QueryWrapper<Artwork> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("artist_id", artistId);
+        queryWrapper.eq("status", 1);
+        
+        return this.count(queryWrapper);
     }
 
     /**

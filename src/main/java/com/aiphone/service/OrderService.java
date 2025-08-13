@@ -1,10 +1,12 @@
 package com.aiphone.service;
 
 import com.aiphone.dto.OrderDTO;
+import com.aiphone.dto.DeliveryDTO;
 import com.aiphone.entity.Order;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -80,6 +82,18 @@ public interface OrderService extends IService<Order> {
     IPage<OrderDTO> getOrdersByArtistId(Long artistId, Integer page, Integer pageSize, String status);
 
     /**
+     * 获取可接订单列表（画师工作台）
+     *
+     * @param artistId 绘画师ID
+     * @param page 页码
+     * @param pageSize 每页数量
+     * @param category 分类筛选
+     * @param priceRange 价格范围
+     * @return 可接订单列表
+     */
+    IPage<OrderDTO> getAvailableOrders(Long artistId, Integer page, Integer pageSize, String category, String priceRange);
+
+    /**
      * 创建订单
      *
      * @param orderDTO 订单信息
@@ -139,6 +153,15 @@ public interface OrderService extends IService<Order> {
     boolean completeOrder(Long id);
 
     /**
+     * 提交作品（画师工作台）
+     *
+     * @param orderId 订单ID
+     * @param deliveryDTO 作品交付信息
+     * @return 操作结果
+     */
+    boolean deliverOrder(Long orderId, DeliveryDTO deliveryDTO);
+
+    /**
      * 取消订单
      *
      * @param id 订单ID
@@ -154,6 +177,14 @@ public interface OrderService extends IService<Order> {
      * @return 统计信息
      */
     OrderStatistics getOrderStatistics(Long userId, Long artistId);
+
+    /**
+     * 获取画师收入统计
+     *
+     * @param artistId 绘画师ID
+     * @return 总收入
+     */
+    BigDecimal getArtistIncome(Long artistId);
 
     /**
      * 订单统计信息

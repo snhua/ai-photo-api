@@ -5,6 +5,8 @@ import com.aiphone.service.CosService;
 import com.aiphone.util.FileUtil;
 import com.qcloud.cos.COSClient;
 import com.qcloud.cos.model.GeneratePresignedUrlRequest;
+import com.qcloud.cos.model.PutObjectRequest;
+import com.qcloud.cos.model.PutObjectResult;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tencent.cloud.*;
 import com.tencent.cloud.cos.util.Jackson;
@@ -12,7 +14,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
+import java.io.IOException;
 import java.net.URL;
 import java.util.Base64;
 import java.util.Date;
@@ -58,6 +63,29 @@ public class CosServiceImpl implements CosService {
     private static final HttpClient httpClient = HttpClients.createDefault();
     @Autowired
     com.aiphone.service.impl.CosService service;
+
+    @Override
+    public String uploadFileToCos(MultipartFile file, String fileName) {
+        try {
+            // 创建临时文件
+            File tempFile = File.createTempFile("cos_upload_", "_" + file.getOriginalFilename());
+            file.transferTo(tempFile);
+            
+            // 上传到COS
+            PutObjectRequest putObjectRequest = new PutObjectRequest(bucketName, fileName, tempFile);
+            PutObjectResult putObjectResult = cosClient.putObject(putObjectRequest);
+            
+            // 删除临时文件
+            tempFile.delete();
+            
+            // 生成文件URL
+            return generateFileUrl(fileName);
+        } catch (IOException e) {
+            log.error("上传文件到COS失败", e);
+            throw new RuntimeException("上传文件失败", e);
+        }
+    }
+
     @Override
     public CosResponse getUploadPolicy(Long userId, String fileName, String fileType) {
 

@@ -1,6 +1,7 @@
 package com.aiphone.service;
 
 import com.aiphone.common.exception.CosResponse;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * 腾讯云COS服务接口
@@ -32,4 +33,13 @@ public interface CosService {
      * @return 删除结果
      */
     boolean deleteFile(String objectKey);
+
+    /**
+     * 上传文件到COS
+     *
+     * @param file     文件
+     * @param fileName 文件名
+     * @return 文件URL
+     */
+    String uploadFileToCos(MultipartFile file, String fileName);
 } 
