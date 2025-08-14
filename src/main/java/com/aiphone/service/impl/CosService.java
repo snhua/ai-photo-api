@@ -28,18 +28,18 @@ public class CosService {
     /**
      * 生成COS文件路径
      */
-    public String generateCosKey(String ext, String fileType) {
+    public String generateCosKey(String ext, String fileType, Long userId) {
         LocalDateTime now = LocalDateTime.now();
         String ymd = now.format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss_"));
         String random = String.format("%06d", new Random().nextInt(1000000));
-        return String.format("images/%s/%s/IMG_%s%s.%s", fileType,
+        return String.format("images/%s/%d/%s/IMG_%s%s.%s", fileType,userId,
             now.format(DateTimeFormatter.ofPattern("yyyyMMdd")), ymd, random, ext);
     }
 
     /**
      * 生成临时密钥
      */
-    public CosResponse generateTempKey(String fileType,String ext) {
+    public CosResponse generateTempKey(Long userId, String fileType, String ext) {
         // 验证参数
 //        if (cosConfig.getSecretId() == null || cosConfig.getSecretKey() == null) {
 //            return new CosResponse(-1, "secretId or secretKey not ready");
@@ -53,7 +53,7 @@ public class CosService {
 
         try {
             String cosHost = cosConfig.bucket + ".cos." + cosConfig.region + ".myqcloud.com";
-            String cosKey = generateCosKey(ext,fileType);
+            String cosKey = generateCosKey(ext,fileType,userId);
             
             long now = System.currentTimeMillis() / 1000;
             long exp = now + 900; // 15分钟过期

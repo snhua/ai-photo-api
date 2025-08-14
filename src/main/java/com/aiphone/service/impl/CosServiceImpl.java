@@ -89,7 +89,7 @@ public class CosServiceImpl implements CosService {
     @Override
     public CosResponse getUploadPolicy(Long userId, String fileName, String fileType) {
 
-       return service.generateTempKey(fileType,FileUtil.getFileExtension(fileName));
+       return service.generateTempKey(userId,fileType,FileUtil.getFileExtension(fileName));
     }
     public Map<String, Object> _getUploadPolicy(Long userId, String fileName, String fileType) {
         try {
