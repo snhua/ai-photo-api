@@ -170,6 +170,14 @@ public interface OrderService extends IService<Order> {
     boolean cancelOrder(Long id);
 
     /**
+     * 确认收货
+     *
+     * @param id 订单ID
+     * @return 操作结果
+     */
+    boolean confirmOrder(Long id);
+
+    /**
      * 获取订单统计信息
      *
      * @param userId 用户ID（可选）
@@ -192,9 +200,11 @@ public interface OrderService extends IService<Order> {
     class OrderStatistics {
         private Long total;
         private Long pending;
+        private Long paid;
         private Long accepted;
         private Long inProgress;
         private Long completed;
+        private Long confirmed;
         private Long cancelled;
 
         // Getters and Setters
@@ -204,6 +214,9 @@ public interface OrderService extends IService<Order> {
         public Long getPending() { return pending; }
         public void setPending(Long pending) { this.pending = pending; }
 
+        public Long getPaid() { return paid; }
+        public void setPaid(Long paid) { this.paid = paid; }
+
         public Long getAccepted() { return accepted; }
         public void setAccepted(Long accepted) { this.accepted = accepted; }
 
@@ -212,6 +225,9 @@ public interface OrderService extends IService<Order> {
 
         public Long getCompleted() { return completed; }
         public void setCompleted(Long completed) { this.completed = completed; }
+
+        public Long getConfirmed() { return confirmed; }
+        public void setConfirmed(Long confirmed) { this.confirmed = confirmed; }
 
         public Long getCancelled() { return cancelled; }
         public void setCancelled(Long cancelled) { this.cancelled = cancelled; }

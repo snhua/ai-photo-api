@@ -174,8 +174,8 @@ public class PaymentServiceImpl extends ServiceImpl<PaymentMapper, Payment> impl
 //        mkOrderMapper.updateByPrimaryKeySelective(updateMkOrder);
         if ("SUCCESS".equals(trade_state)) {
             Order updateMkOrder = orderService.getById(payment.getOrderId());
-//        updateMkOrder.setStatus("PAID");
-            orderService.updateOrderStatus(payment.getOrderId(),"PAID");
+//        updateMkOrder.setStatus("paid");
+            orderService.updateOrderStatus(payment.getOrderId(),"paid");
         }
 
         return success;

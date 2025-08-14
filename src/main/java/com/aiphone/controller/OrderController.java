@@ -373,6 +373,25 @@ public class OrderController {
     }
 
     /**
+     * 确认收货
+     */
+    @ApiOperation("确认收货")
+    @PutMapping("/{id}/confirm")
+    public Map<String, Object> confirmOrder(@ApiParam("订单ID") @PathVariable Long id) {
+        Map<String, Object> result = new HashMap<>();
+        try {
+            boolean success = orderService.confirmOrder(id);
+            result.put("code", success ? 0 : -1);
+            result.put("message", success ? "确认收货成功" : "确认收货失败");
+            result.put("data", success);
+        } catch (Exception e) {
+            result.put("code", -1);
+            result.put("message", "确认收货失败：" + e.getMessage());
+        }
+        return result;
+    }
+
+    /**
      * 获取订单统计信息
      */
     @ApiOperation("获取订单统计信息")

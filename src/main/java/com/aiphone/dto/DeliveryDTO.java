@@ -20,7 +20,7 @@ public class DeliveryDTO {
     private List<String> artworkUrls;
 
     @ApiModelProperty(value = "作品标题", required = true)
-    @NotBlank(message = "作品标题不能为空")
+//    @NotBlank(message = "作品标题不能为空")
     private String title;
 
     @ApiModelProperty(value = "作品描述")

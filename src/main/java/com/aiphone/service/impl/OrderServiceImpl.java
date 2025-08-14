@@ -34,6 +34,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
+
 import com.aiphone.entity.User;
 
 /**
@@ -76,7 +77,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     public IPage<OrderDTO> getOrderList(Integer page, Integer pageSize, String status, Long userId, Long artistId) {
         Page<Order> pageParam = new Page<>(page, pageSize);
         QueryWrapper<Order> queryWrapper = new QueryWrapper<>();
-        
+
         if (StringUtils.hasText(status)) {
             queryWrapper.eq("status", status);
         }
@@ -86,9 +87,9 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         if (artistId != null) {
             queryWrapper.eq("artist_id", artistId);
         }
-        
+
         queryWrapper.orderByDesc("created_at");
-        
+
         IPage<Order> orderPage = this.page(pageParam, queryWrapper);
         return convertToOrderDTOPage(orderPage);
     }
@@ -97,18 +98,18 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     public IPage<OrderDTO> getAvailableOrders(Long artistId, Integer page, Integer pageSize, String category, String priceRange) {
         Page<Order> pageParam = new Page<>(page, pageSize);
         QueryWrapper<Order> queryWrapper = new QueryWrapper<>();
-        
-        // 只查询待接单的订单
-        queryWrapper.eq("status", "pending");
-        
+
+        // 只查询已支付待接单的订单
+        queryWrapper.eq("status", "paid");
+
         // 排除已经被接的订单
-        queryWrapper.isNull("artist_id").or().eq("artist_id", 0);
-        
+        queryWrapper.eq("artist_id", 0);
+
         // 分类筛选
         if (StringUtils.hasText(category)) {
             queryWrapper.eq("category", category);
         }
-        
+
         // 价格范围筛选
         if (StringUtils.hasText(priceRange)) {
             String[] range = priceRange.split("-");
@@ -122,9 +123,9 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
                 }
             }
         }
-        
+
         queryWrapper.orderByDesc("created_at");
-        
+
         IPage<Order> orderPage = this.page(pageParam, queryWrapper);
         return convertToOrderDTOPage(orderPage);
     }
@@ -152,13 +153,13 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         Page<Order> pageParam = new Page<>(page, pageSize);
         QueryWrapper<Order> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("user_id", userId);
-        
+
         if (StringUtils.hasText(status)) {
             queryWrapper.eq("status", status);
         }
-        
+
         queryWrapper.orderByDesc("created_at");
-        
+
         IPage<Order> orderPage = this.page(pageParam, queryWrapper);
         return convertToOrderDTOPage(orderPage);
     }
@@ -168,13 +169,13 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         Page<Order> pageParam = new Page<>(page, pageSize);
         QueryWrapper<Order> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("artist_id", artistId);
-        
+
         if (StringUtils.hasText(status)) {
             queryWrapper.eq("status", status);
         }
-        
+
         queryWrapper.orderByDesc("created_at");
-        
+
         IPage<Order> orderPage = this.page(pageParam, queryWrapper);
         return convertToOrderDTOPage(orderPage);
     }
@@ -184,15 +185,15 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     public Long createOrder(OrderDTO orderDTO) {
         Order order = new Order();
         BeanUtils.copyProperties(orderDTO, order);
-        
+
         // 生成订单号
         order.setOrderNo(generateOrderNo());
-        
+
         // 设置默认状态
         if (!StringUtils.hasText(order.getStatus())) {
             order.setStatus("pending");
         }
-        
+
         // 转换参考图片为JSON字符串
         if (orderDTO.getReferenceImages() != null && !orderDTO.getReferenceImages().isEmpty()) {
             try {
@@ -201,7 +202,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
                 throw new RuntimeException("转换参考图片失败", e);
             }
         }
-        
+
         boolean success = this.save(order);
         if (success) {
             return order.getId();
@@ -217,10 +218,10 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         if (order == null) {
             return false;
         }
-        
+
         BeanUtils.copyProperties(orderDTO, order);
         order.setId(id);
-        
+
         // 转换参考图片为JSON字符串
         if (orderDTO.getReferenceImages() != null && !orderDTO.getReferenceImages().isEmpty()) {
             try {
@@ -229,7 +230,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
                 throw new RuntimeException("转换参考图片失败", e);
             }
         }
-        
+
         return this.updateById(order);
     }
 
@@ -246,7 +247,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         if (order == null) {
             return false;
         }
-        
+
         order.setStatus(status);
         return this.updateById(order);
     }
@@ -258,11 +259,11 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         if (order == null) {
             return false;
         }
-        
-        if (!"pending".equals(order.getStatus())) {
+
+        if (!"paid".equals(order.getStatus())) {
             throw new RuntimeException("订单状态不正确，无法接受");
         }
-        
+
         order.setArtistId(artistId);
         order.setStatus("accepted");
         return this.updateById(order);
@@ -275,11 +276,11 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         if (order == null) {
             return false;
         }
-        
+
         if (!"accepted".equals(order.getStatus())) {
             throw new RuntimeException("订单状态不正确，无法开始制作");
         }
-        
+
         order.setStatus("in_progress");
         return this.updateById(order);
     }
@@ -291,11 +292,11 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         if (order == null) {
             return false;
         }
-        
+
         if (!"in_progress".equals(order.getStatus())) {
             throw new RuntimeException("订单状态不正确，无法完成");
         }
-        
+
         order.setStatus("completed");
         return this.updateById(order);
     }
@@ -307,12 +308,29 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         if (order == null) {
             return false;
         }
-        
+
         if ("completed".equals(order.getStatus()) || "cancelled".equals(order.getStatus())) {
             throw new RuntimeException("订单状态不正确，无法取消");
         }
-        
+
         order.setStatus("cancelled");
+        return this.updateById(order);
+    }
+
+    @Override
+    @Transactional
+    public boolean confirmOrder(Long id) {
+        Order order = this.getById(id);
+        if (order == null) {
+            return false;
+        }
+
+        if (!"completed".equals(order.getStatus())) {
+            throw new RuntimeException("订单状态不正确，无法确认收货");
+        }
+
+        // 确认收货后，更新订单状态为confirmed
+        order.setStatus("confirmed");
         return this.updateById(order);
     }
 
@@ -324,30 +342,31 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
             if (order == null) {
                 return false;
             }
-            
+
             // 更新订单状态为已完成
             order.setStatus("completed");
-            
-            // 保存作品信息到订单（暂时注释掉，因为Order实体没有这些字段）
-            // if (deliveryDTO.getArtworkUrls() != null && !deliveryDTO.getArtworkUrls().isEmpty()) {
-            //     order.setArtworkUrls(JSON.toJSONString(deliveryDTO.getArtworkUrls()));
-            // }
-            
-            // 保存作品说明（暂时注释掉，因为Order实体没有这些字段）
-            // if (StringUtils.hasText(deliveryDTO.getNotes())) {
-            //     order.setNotes(deliveryDTO.getNotes());
-            // }
-            
-            // 保存技术说明（暂时注释掉，因为Order实体没有这些字段）
-            // if (StringUtils.hasText(deliveryDTO.getTechnicalNotes())) {
-            //     order.setTechnicalNotes(deliveryDTO.getTechnicalNotes());
-            // }
-            
-            // 保存制作时间（暂时注释掉，因为Order实体没有这些字段）
-            // if (deliveryDTO.getWorkHours() != null) {
-            //     order.setWorkHours(deliveryDTO.getWorkHours());
-            // }
-            
+            order.setCompletedAt(LocalDateTime.now());
+
+            // 保存作品信息到订单
+            if (deliveryDTO.getArtworkUrls() != null && !deliveryDTO.getArtworkUrls().isEmpty()) {
+                order.setArtworkUrls(JSON.toJSONString(deliveryDTO.getArtworkUrls()));
+            }
+
+            // 保存作品说明
+            if (StringUtils.hasText(deliveryDTO.getNotes())) {
+                order.setNotes(deliveryDTO.getNotes());
+            }
+
+            // 保存技术说明
+            if (StringUtils.hasText(deliveryDTO.getTechnicalNotes())) {
+                order.setTechnicalNotes(deliveryDTO.getTechnicalNotes());
+            }
+
+            // 保存制作时间
+            if (deliveryDTO.getWorkHours() != null) {
+                order.setWorkHours(deliveryDTO.getWorkHours());
+            }
+
             return this.updateById(order);
         } catch (Exception e) {
             throw new RuntimeException("提交作品失败", e);
@@ -359,10 +378,10 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         try {
             QueryWrapper<Order> queryWrapper = new QueryWrapper<>();
             queryWrapper.eq("artist_id", artistId)
-                       .eq("status", "completed");
-            
+                    .eq("status", "completed");
+
             List<Order> completedOrders = this.list(queryWrapper);
-            
+
             return completedOrders.stream()
                     .map(Order::getPrice)
                     .filter(price -> price != null)
@@ -375,7 +394,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     @Override
     public OrderStatistics getOrderStatistics(Long userId, Long artistId) {
         OrderStatistics statistics = new OrderStatistics();
-        
+
         QueryWrapper<Order> queryWrapper = new QueryWrapper<>();
         if (userId != null) {
             queryWrapper.eq("user_id", userId);
@@ -383,10 +402,10 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         if (artistId != null) {
             queryWrapper.eq("artist_id", artistId);
         }
-        
+
         // 总订单数
         statistics.setTotal(this.count(queryWrapper));
-        
+
         // 各状态订单数
         QueryWrapper<Order> pendingWrapper = new QueryWrapper<>();
         if (userId != null) {
@@ -397,7 +416,17 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         }
         pendingWrapper.eq("status", "pending");
         statistics.setPending(this.count(pendingWrapper));
-        
+
+        QueryWrapper<Order> paidWrapper = new QueryWrapper<>();
+        if (userId != null) {
+            paidWrapper.eq("user_id", userId);
+        }
+        if (artistId != null) {
+            paidWrapper.eq("artist_id", artistId);
+        }
+        paidWrapper.eq("status", "paid");
+        statistics.setPaid(this.count(paidWrapper));
+
         QueryWrapper<Order> acceptedWrapper = new QueryWrapper<>();
         if (userId != null) {
             acceptedWrapper.eq("user_id", userId);
@@ -407,7 +436,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         }
         acceptedWrapper.eq("status", "accepted");
         statistics.setAccepted(this.count(acceptedWrapper));
-        
+
         QueryWrapper<Order> inProgressWrapper = new QueryWrapper<>();
         if (userId != null) {
             inProgressWrapper.eq("user_id", userId);
@@ -417,7 +446,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         }
         inProgressWrapper.eq("status", "in_progress");
         statistics.setInProgress(this.count(inProgressWrapper));
-        
+
         QueryWrapper<Order> completedWrapper = new QueryWrapper<>();
         if (userId != null) {
             completedWrapper.eq("user_id", userId);
@@ -427,7 +456,17 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         }
         completedWrapper.eq("status", "completed");
         statistics.setCompleted(this.count(completedWrapper));
-        
+
+        QueryWrapper<Order> confirmedWrapper = new QueryWrapper<>();
+        if (userId != null) {
+            confirmedWrapper.eq("user_id", userId);
+        }
+        if (artistId != null) {
+            confirmedWrapper.eq("artist_id", artistId);
+        }
+        confirmedWrapper.eq("status", "confirmed");
+        statistics.setConfirmed(this.count(confirmedWrapper));
+
         QueryWrapper<Order> cancelledWrapper = new QueryWrapper<>();
         if (userId != null) {
             cancelledWrapper.eq("user_id", userId);
@@ -437,15 +476,15 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         }
         cancelledWrapper.eq("status", "cancelled");
         statistics.setCancelled(this.count(cancelledWrapper));
-        
+
         return statistics;
     }
 
     // 使用Gson将JSONArray转换为List
     public static <T> List<T> jsonArrayToListWithGson(JSONArray jsonArray, Class<T> clazz) {
         List<T> list = new ArrayList<>();
-        jsonArray.forEach(e->{
-            list.add((T)JSON.toJSONString(e));
+        jsonArray.forEach(e -> {
+            list.add((T) JSON.toJSONString(e));
         });
         return list;
     }
@@ -456,25 +495,29 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     private OrderDTO convertToOrderDTO(Order order) {
         OrderDTO orderDTO = new OrderDTO();
         BeanUtils.copyProperties(order, orderDTO);
-        
+
         // 转换参考图片JSON字符串为List
         if (StringUtils.hasText(order.getReferenceImages())) {
             try {
-
-                JSONArray fastJsonArray = JSONArray.parseArray( order.getReferenceImages());
+                JSONArray fastJsonArray = JSONArray.parseArray(order.getReferenceImages());
                 List<String> fastJsonList = jsonArrayToListWithGson(fastJsonArray, String.class);
-
-
-//                List<String> referenceImages = objectMapper.readValue(
-//                    order.getReferenceImages(),
-//                    new TypeReference<List<String>>() {}
-//                );
                 orderDTO.setReferenceImages(fastJsonList);
             } catch (Exception e) {
                 orderDTO.setReferenceImages(new ArrayList<>());
             }
         }
-        
+
+        // 转换作品文件URL列表JSON字符串为List
+        if (StringUtils.hasText(order.getArtworkUrls())) {
+            try {
+                JSONArray fastJsonArray = JSONArray.parseArray(order.getArtworkUrls());
+                List<String> fastJsonList = jsonArrayToListWithGson(fastJsonArray, String.class);
+                orderDTO.setArtworkUrls(fastJsonList);
+            } catch (Exception e) {
+                orderDTO.setArtworkUrls(new ArrayList<>());
+            }
+        }
+
         // 获取用户信息
         if (order.getUserId() != null) {
             User user = userService.getUserById(order.getUserId());
@@ -484,13 +527,13 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
                 orderDTO.setUser(userDTO);
             }
         }
-        
+
         // 获取绘画师信息
         if (order.getArtistId() != null) {
             ArtistDTO artist = artistService.getArtistDetail(order.getArtistId());
             orderDTO.setArtist(artist);
         }
-        
+
         return orderDTO;
     }
 
@@ -499,11 +542,11 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
      */
     private IPage<OrderDTO> convertToOrderDTOPage(IPage<Order> orderPage) {
         Page<OrderDTO> orderDTOPage = new Page<>(orderPage.getCurrent(), orderPage.getSize(), orderPage.getTotal());
-        
+
         List<OrderDTO> orderDTOList = orderPage.getRecords().stream()
-            .map(this::convertToOrderDTO)
-            .collect(Collectors.toList());
-        
+                .map(this::convertToOrderDTO)
+                .collect(Collectors.toList());
+
         orderDTOPage.setRecords(orderDTOList);
         return orderDTOPage;
     }

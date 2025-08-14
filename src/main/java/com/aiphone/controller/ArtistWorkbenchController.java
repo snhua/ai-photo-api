@@ -198,9 +198,9 @@ public class ArtistWorkbenchController {
             }
             
             // 验证订单是否属于当前画师
-            if (!artistId.equals(order.getArtistId())) {
-                return Result.error(1003, "无权限查看此订单");
-            }
+//            if (!artistId.equals(order.getArtistId())) {
+//                return Result.error(1003, "无权限查看此订单");
+//            }
             
             return Result.success(order);
         } catch (Exception e) {

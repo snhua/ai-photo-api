@@ -67,6 +67,31 @@ public class OrderDTO {
     private LocalDateTime deadline;
 
     /**
+     * 作品文件URL列表
+     */
+    private List<String> artworkUrls;
+
+    /**
+     * 作品说明
+     */
+    private String notes;
+
+    /**
+     * 技术说明
+     */
+    private String technicalNotes;
+
+    /**
+     * 制作时间（小时）
+     */
+    private Integer workHours;
+
+    /**
+     * 完成时间
+     */
+    private LocalDateTime completedAt;
+
+    /**
      * 创建时间
      */
     private LocalDateTime createdAt;
