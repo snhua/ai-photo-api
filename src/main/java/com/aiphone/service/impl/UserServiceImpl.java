@@ -56,8 +56,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
                 // 创建新用户
                 user = new User();
                 user.setOpenid(openid);
-                user.setNickname(request.getUserInfo().getNickName());
-                user.setAvatar(request.getUserInfo().getAvatarUrl());
+//                user.setNickname(request.getUserInfo().getNickName());
+//                user.setAvatar(request.getUserInfo().getAvatarUrl());
                 user.setUserType("user");
                 user.setStatus(1);
                 user.setBalance(BigDecimal.ZERO);
