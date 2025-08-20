@@ -66,4 +66,25 @@ public interface WechatPayService {
     java.util.Map<String, String> parseWechatPayNotify(String xmlData);
 
     Map callback(HttpServletRequest request, Map<String, Object> requestBody);
+
+    /**
+     * 企业付款到零钱
+     *
+     * @param partnerTradeNo 商户订单号
+     * @param openid 用户openid
+     * @param amount 付款金额（分）
+     * @param description 付款描述
+     * @param checkName 校验用户姓名选项：NO_CHECK-不校验真实姓名，FORCE_CHECK-强校验真实姓名，OPTION_CHECK-针对已实名认证的用户才校验真实姓名
+     * @param reUserName 收款用户真实姓名（当checkName为FORCE_CHECK或OPTION_CHECK时必填）
+     * @return 企业付款结果
+     */
+    Map<String, Object> transferToBalance(String partnerTradeNo, String openid, Integer amount, String description, String checkName, String reUserName) throws Exception;
+
+    /**
+     * 查询企业付款到零钱结果
+     *
+     * @param partnerTradeNo 商户订单号
+     * @return 查询结果
+     */
+    Map<String, Object> queryTransferToBalance(String partnerTradeNo) throws Exception;
 }

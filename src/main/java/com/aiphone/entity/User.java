@@ -46,6 +46,26 @@ public class User {
     private BigDecimal balance;
     
     /**
+     * 可提现金额
+     */
+    private BigDecimal withdrawableBalance;
+    
+    /**
+     * 总收入
+     */
+    private BigDecimal totalIncome;
+    
+    /**
+     * 总提现
+     */
+    private BigDecimal totalWithdraw;
+    
+    /**
+     * 技术服务费总额
+     */
+    private BigDecimal serviceFeeTotal;
+    
+    /**
      * 用户类型：user-普通用户，artist-AI绘画师
      */
     private String userType;

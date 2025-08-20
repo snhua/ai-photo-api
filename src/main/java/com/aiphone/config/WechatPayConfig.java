@@ -62,4 +62,14 @@ public class WechatPayConfig {
      * 支付超时时间（分钟）
      */
     private int timeoutMinutes = 30;
+
+    /**
+     * 商户证书序列号
+     */
+    private String serialNo;
+
+    /**
+     * 商户私钥路径
+     */
+    private String privateKeyPath;
 } 

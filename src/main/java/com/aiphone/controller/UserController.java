@@ -160,16 +160,7 @@ public class UserController {
         }
     }
 
-    /**
-     * 用户充值
-     */
-    @PostMapping("/recharge")
-    @ApiOperation("用户充值")
-    public Result<User> recharge(
-            @ApiParam("充值金额") @RequestParam("amount") java.math.BigDecimal amount) {
-        Long userId = UserContext.getCurrentUserId();
-        return userService.recharge(userId, amount);
-    }
+
 
     /**
      * 用户提现

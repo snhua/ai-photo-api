@@ -222,31 +222,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         return updateById(user);
     }
 
-    @Override
-    @Transactional
-    public Result<User> recharge(Long userId, BigDecimal amount) {
-        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
-            return Result.error(1001, "充值金额必须大于0");
-        }
-        
-        // 更新用户余额
-        boolean success = updateUserBalance(userId, amount);
-        if (!success) {
-            return Result.error(1005, "充值失败");
-        }
-        
-        // 记录交易
-        WalletTransaction transaction = new WalletTransaction();
-        transaction.setUserId(userId);
-        transaction.setType("income");
-        transaction.setAmount(amount);
-        transaction.setDescription("账户充值");
-        transaction.setRelatedType("recharge");
-        walletTransactionMapper.insert(transaction);
-        
-        User user = getById(userId);
-        return Result.success(user);
-    }
+
 
     @Override
     @Transactional

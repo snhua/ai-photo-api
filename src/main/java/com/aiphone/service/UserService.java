@@ -97,13 +97,7 @@ public interface UserService {
      */
     boolean updateUserBalance(Long userId, BigDecimal amount);
     
-    /**
-     * 充值
-     * @param userId 用户ID
-     * @param amount 充值金额
-     * @return 充值结果
-     */
-    Result<User> recharge(Long userId, BigDecimal amount);
+
     
     /**
      * 提现

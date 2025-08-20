@@ -35,6 +35,29 @@ public interface UserMapper extends BaseMapper<User> {
     int updateUserBalance(@Param("userId") Long userId, @Param("amount") BigDecimal amount);
     
     /**
+     * 更新用户可提现金额
+     */
+    @Update("UPDATE users SET withdrawable_balance = withdrawable_balance + #{amount} WHERE id = #{userId}")
+    int updateUserWithdrawableBalance(@Param("userId") Long userId, @Param("amount") BigDecimal amount);
+    
+    /**
+     * 更新用户统计信息
+     */
+    @Update("UPDATE users SET total_income = total_income + #{income}, service_fee_total = service_fee_total + #{serviceFee} WHERE id = #{userId}")
+    int updateUserStatistics(@Param("userId") Long userId, @Param("income") BigDecimal income, @Param("serviceFee") BigDecimal serviceFee);
+    
+    /**
+     * 更新用户总提现
+     */
+    @Update("UPDATE users SET total_withdraw = total_withdraw + #{amount} WHERE id = #{userId}")
+    int updateUserTotalWithdraw(@Param("userId") Long userId, @Param("amount") BigDecimal amount);
+      /**
+     * 更新用户总服务费
+     */
+    @Update("UPDATE users SET service_fee_total = service_fee_total + #{amount} WHERE id = #{userId}")
+    int updateUserServiceFeeTotal(@Param("userId") Long userId, @Param("amount") BigDecimal amount);
+
+    /**
      * 获取活跃用户列表
      */
     @Select("SELECT * FROM users WHERE status = 1 ORDER BY created_at DESC LIMIT #{limit}")

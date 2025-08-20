@@ -7,15 +7,15 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
- * 钱包交易记录实体类
+ * 延迟到账记录实体类
  */
 @Data
 @EqualsAndHashCode(callSuper = false)
-@TableName("wallet_transactions")
-public class WalletTransaction {
+@TableName("wallet_pending_withdrawals")
+public class WalletPendingWithdrawal {
     
     /**
-     * 交易记录ID
+     * 记录ID
      */
     @TableId(type = IdType.AUTO)
     private Long id;
@@ -26,34 +26,14 @@ public class WalletTransaction {
     private Long userId;
     
     /**
-     * 交易类型：income-收入，expense-支出
+     * 订单ID
      */
-    private String type;
+    private Long orderId;
     
     /**
-     * 交易金额
+     * 金额
      */
     private BigDecimal amount;
-    
-    /**
-     * 交易描述
-     */
-    private String description;
-    
-    /**
-     * 关联ID（订单ID、支付订单号等）
-     */
-    private String relatedId;
-    
-    /**
-     * 关联类型
-     */
-    private String relatedType;
-    
-    /**
-     * 可提现金额变动
-     */
-    private BigDecimal withdrawableAmount;
     
     /**
      * 技术服务费
@@ -61,17 +41,12 @@ public class WalletTransaction {
     private BigDecimal serviceFee;
     
     /**
-     * 可提现时间（延迟到账）
+     * 可提现时间
      */
     private LocalDateTime availableAt;
     
     /**
-     * 交易流水号
-     */
-    private String transactionNo;
-    
-    /**
-     * 交易状态
+     * 状态：pending-待处理，available-可提现，withdrawn-已提现，cancelled-已取消
      */
     private String status;
     
@@ -80,4 +55,10 @@ public class WalletTransaction {
      */
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdAt;
-} 
+    
+    /**
+     * 更新时间
+     */
+    @TableField(fill = FieldFill.INSERT_UPDATE)
+    private LocalDateTime updatedAt;
+}

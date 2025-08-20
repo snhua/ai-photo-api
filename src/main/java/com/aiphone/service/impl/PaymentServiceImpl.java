@@ -9,6 +9,7 @@ import com.aiphone.service.PaymentService;
 import com.aiphone.service.WechatPayService;
 import com.aiphone.service.UserService;
 import com.aiphone.service.OrderService;
+import com.aiphone.service.WalletService;
 import com.aiphone.util.AesUtil;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
@@ -19,6 +20,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.aiphone.mapper.PaymentMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -60,6 +62,10 @@ public class PaymentServiceImpl extends ServiceImpl<PaymentMapper, Payment> impl
 
     @Autowired
     private OrderService orderService;
+    
+    @Autowired
+    @Lazy
+    private WalletService walletService;
 
     private AesUtil aesUtil;
     @PostConstruct
@@ -224,10 +230,9 @@ public class PaymentServiceImpl extends ServiceImpl<PaymentMapper, Payment> impl
                     payment.setUpdateTime(LocalDateTime.now());
                     updateById(payment);
 
-                    // 处理订单状态（这里可以调用订单服务更新订单状态）
+                    // 处理订单支付成功
                     orderService.updateOrderStatus(payment.getOrderNo(), "paid");
-
-                    log.info("微信支付成功，支付订单号：{}，微信交易号：{}", paymentNo, transactionId);
+                    log.info("订单支付成功，支付订单号：{}，微信交易号：{}", paymentNo, transactionId);
                 } else {
                     // 支付失败
                     payment.setStatus("failed");

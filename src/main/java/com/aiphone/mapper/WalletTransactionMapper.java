@@ -46,6 +46,18 @@ public interface WalletTransactionMapper extends BaseMapper<WalletTransaction> {
     WalletStatistics getUserWalletStatistics(@Param("userId") Long userId);
     
     /**
+     * 根据关联类型获取交易记录
+     */
+    @Select("SELECT * FROM wallet_transactions WHERE user_id = #{userId} AND related_type = #{relatedType} ORDER BY created_at DESC")
+    List<WalletTransaction> getByRelatedType(@Param("userId") Long userId, @Param("relatedType") String relatedType);
+    
+    /**
+     * 检查交易流水号是否存在
+     */
+    @Select("SELECT COUNT(*) FROM wallet_transactions WHERE transaction_no = #{transactionNo}")
+    int checkTransactionNoExists(@Param("transactionNo") String transactionNo);
+    
+    /**
      * 钱包统计信息
      */
     class WalletStatistics {
